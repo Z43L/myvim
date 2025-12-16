@@ -47,14 +47,7 @@ require('lazy').setup({
     -- Theme & UI
     { 'folke/tokyonight.nvim',   lazy = false,  priority = 1000,                              opts = { style = 'night' } },
     {
-        'nvim-lualine/lualine.nvim',
-        dependencies = { 'nvim-tree/nvim-web-devicons' },
-        opts = function() return { options = { theme = 'tokyonight', globalstatus = true } } end
-    },
-    { 'akinsho/bufferline.nvim', version = '*', dependencies = 'nvim-tree/nvim-web-devicons', opts = {} },
-    { 'rcarriga/nvim-notify',    opts = {} },
-    { 'stevearc/dressing.nvim',  opts = {} },
-    { 'folke/which-key.nvim',    opts = {} },
+        'nvim-lualine/lualine.nvim',                                                                                                                                                           dependencies = { 'nvim-tree/nvim-web-devicons' },                                                                                                                                      opts = function() return { options = { theme = 'tokyonight', globalstatus = true } } end                                                                                           },                                                                                                                                                                                     { 'akinsho/bufferline.nvim', version = '*', dependencies = 'nvim-tree/nvim-web-devicons', opts = {} },                                                                                 { 'rcarriga/nvim-notify',    opts = {} },                                                                                                                                              { 'stevearc/dressing.nvim',  opts = {} },                                                                                                                                              { 'folke/which-key.nvim',    opts = {} },
 
     -- File explorer
     {
@@ -62,11 +55,7 @@ require('lazy').setup({
         dependencies = 'nvim-tree/nvim-web-devicons',
         config = function()
             require('nvim-tree').setup({
-                view = { width = 34, side = 'left' },
-                filters = { dotfiles = false },
-                git = { enable = true },
-            })
-        end
+                view = { width = 34, side = 'left' },                                                                                                                                                  filters = { dotfiles = false },                                                                                                                                                        git = { enable = true },                                                                                                                                                           })                                                                                                                                                                                 end
     },
 
     -- Finder & fuzzy
@@ -111,6 +100,7 @@ require('lazy').setup({
 
     -- Autopairs
     { 'windwp/nvim-autopairs',               opts = { check_ts = true } },
+
     -- Todo highlights
     { 'folke/todo-comments.nvim',            dependencies = 'nvim-lua/plenary.nvim',       opts = {} },
 
@@ -246,7 +236,7 @@ require('lazy').setup({
         opts = {
             lang = 'python3', -- ¡Ajusta tu lenguaje aquí!
         },
-        cmd = 'Leet',
+        event = 'VeryLazy',
     },
 
 }, {
@@ -478,6 +468,103 @@ wk.add({
     { '<leader>c',  group = 'Chat/AI' },
 })
 
+-- =====================================================================
+-- LeetCode Help Popup (<leader>lh)
+-- Requiere: nui.nvim (instalado por leetcode.nvim)
+-- =====================================================================
+
+vim.keymap.set("n", "<leader>lh", function()
+    local ok, Popup = pcall(require, "nui.popup")
+    if not ok then
+        vim.notify("nui.nvim no encontrado. Asegúrate de que leetcode.nvim esté instalado.", vim.log.levels.ERROR)
+        return
+    end
+
+    local event = require("nui.utils.autocmd").event
+
+    local popup = Popup({
+        enter = true,
+        focusable = true,
+        border = {
+            style = "rounded",
+            text = {
+                top = " LeetCode Cheatsheet ",
+                top_align = "center",
+            },
+        },
+        position = "50%",
+        size = {
+            width = "80",
+            height = "60%",
+        },
+    })
+
+    -- El contenido de tu documentación formateado
+    local content = {
+        " COMMAND        DESCRIPTION",
+        " ────────────────────────────────────────────────────────────",
+        " Leet           Opens menu dashboard",
+        " menu           Same as Leet",
+        " exit           Close leetcode.nvim",
+        " console        Opens console pop-up for currently opened question",
+        " info           Opens a pop-up with info about current question",
+        " tabs           Opens a picker with all currently opened question tabs",
+        " yank           Yanks the code section",
+        " lang           Opens a picker to change the language",
+        " run            Run currently opened question",
+        " test           Same as Leet run",
+        " submit         Submit currently opened question",
+        " random         Opens a random question",
+        " daily          Opens the question of today",
+        " list           Opens a picker with all available problems",
+        " open           Opens current question in default browser",
+        " restore        Try to restore default question layout",
+        " last_submit    Replace editor code with latest submitted code",
+        " reset          Resets editor code section to default snippet",
+        " inject         Re-injects editor code, keeping code section intact",
+        " fold           Applies folding to imports section",
+        " desc           Toggle question description",
+        " toggle         Same as Leet desc",
+        " stats          Toggle description stats visibility",
+        " ",
+        " [COOKIE / CACHE]",
+        " cookie update  Opens a prompt to enter a new cookie",
+        " cookie delete  Deletes stored cookie and logs out",
+        " cache update   Fetches problems and updates local cache",
+        " ",
+        " [TECLAS]",
+        " q / <Esc>      Cerrar esta ventana",
+    }
+
+    -- Montar el popup
+    popup:mount()
+
+    -- Escribir el contenido en el buffer del popup
+    vim.api.nvim_buf_set_lines(popup.bufnr, 0, 1, false, content)
+
+    -- Configurar buffer como no editable
+    vim.api.nvim_set_option_value("modifiable", false, { buf = popup.bufnr })
+    vim.api.nvim_set_option_value("readonly", true, { buf = popup.bufnr })
+    vim.api.nvim_set_option_value("filetype", "leetcode-help", { buf = popup.bufnr })
+
+    -- Resaltado de sintaxis básico para que se vea bonito
+    vim.api.nvim_create_autocmd("FileType", {
+        buffer = popup.bufnr,
+        callback = function()
+            vim.fn.matchadd("Title", [=[^\s*\[.*\]]=])
+            vim.fn.matchadd("Keyword", [[^\s*\w\+]]) -- Resaltar los comandos (primera palabra)
+            vim.fn.matchadd("Comment", [[Same as.*]]) -- Resaltar notas secundarias
+        end,
+    })
+
+    -- Mapeos para cerrar la ventana con q o Esc
+    popup:map("n", "q", function() popup:unmount() end, { noremap = true })
+    popup:map("n", "<Esc>", function() popup:unmount() end, { noremap = true })
+
+    -- Cerrar automáticamente si cambiamos de buffer
+    popup:on(event.BufLeave, function() popup:unmount() end)
+end, { desc = "LeetCode Help Popup" })
+
 -- ---------------------------------------------------------------------
 -- Final touches
 -- ---------------------------------------------------------------------
@@ -491,3 +578,130 @@ vim.api.nvim_create_autocmd('TextYankPost', {
 
 -- Telescope projects extension (en caso de carga perezosa)
 pcall(function() require('telescope').load_extension('projects') end)
+
+
+-- =============================================================
+-- Global Help / Cheatsheet Popup (<leader>ah)
+-- Muestra todos los atajos de teclado configurados
+-- =====================================================================
+vim.keymap.set("n", "<leader>ah", function()
+  local ok, Popup = pcall(require, "nui.popup")
+  if not ok then
+    vim.notify("nui.nvim no encontrado.", vim.log.levels.ERROR)
+    return
+  end
+
+  local event = require("nui.utils.autocmd").event
+
+  local popup = Popup({
+    enter = true,
+    focusable = true,
+    border = {
+      style = "rounded",
+      text = {
+        top = " Configuración Neovim Pro ",
+        top_align = "center",
+      },
+    },
+    position = "50%",
+    size = {
+      width = "90",
+      height = "85%",
+    },
+  })
+
+  local content = {
+    " ATAJO            ACCIÓN",
+    " ──────────────────────────────────────────────────────────────────",
+    " [GENERAL]",
+    " <C-s>            Guardar archivo (Modo normal/insert/visual)",
+    " <leader>w        Guardar archivo",
+    " <leader>q        Cerrar ventana/buffer",
+    " <leader>e        Abrir/Cerrar Explorador de Archivos (NvimTree)",
+    " ",
+    " [BUSCADOR (TELESCOPE)]",
+    " <leader>ff       Buscar archivos (Find Files)",
+    " <leader>fg       Buscar texto en proyecto (Live Grep)",
+    " <leader>fb       Buscar en buffers abiertos",
+    " <leader>fh       Ayuda de neovim (Help Tags)",
+    " <leader>pp       Cambiar de proyecto",
+    " ",
+    " [VENTANAS]",
+    " <leader>sv       Dividir verticalmente  (|)",
+    " <leader>sh       Dividir horizontalmente (-)",
+    " <leader>se       Igualar tamaño de ventanas",
+    " <leader>sx       Cerrar división actual",
+    " ",
+    " [LSP & CÓDIGO]",
+    " gd               Ir a definición",
+    " gr               Ir a referencias",
+    " gi               Ir a implementación",
+    " K                Ver documentación (Hover)",
+    " <leader>rn       Renombrar variable/función",
+    " <leader>ca       Acciones de código (Code Action)",
+    " <leader>f        Formatear código (Prettier/Ruff/etc)",
+    " <leader>al       Comentar/Descomentar línea o bloque (<leader>+/)",
+    " ",
+    " [DIAGNÓSTICOS]",
+    " [d / ]d          Ir al error anterior / siguiente",
+    " <leader>do       Ver error en ventana flotante",
+    " <leader>dl       Ver lista de errores (Trouble)",
+    " <leader>xx       Alternar panel de errores (Trouble)",
+    " ",
+    " [GIT]",
+    " <leader>gb       Ver quién modificó la línea (Blame)",
+    " <leader>gd       Ver diferencias (Diff)",
+    " ",
+    " [INTELIGENCIA ARTIFICIAL (OLLAMA)]",
+    " <leader>p        Prompt genérico (Normal y Visual)",
+    " <leader>aa       Preguntar sobre el código (Ask)",
+    " <leader>ee       Explicar código seleccionado",
+    " <leader>gg       Generar código",
+    " <leader>mm       Modificar/Refactorizar código",
+    " <leader>ss       Simplificar código",
+    " <leader>cc       Abrir Chat (CodeCompanion)",
+    " <leader>ci       Chat en línea (Inline)",
+    " ",
+    " [LEETCODE]",
+    " <leader>lh       Ver menú de ayuda exclusivo de LeetCode",
+    " :Leet            Abrir Dashboard",
+    " ",
+    " [SESIONES & TERMINAL]",
+    " <leader>ss       Restaurar sesión actual",
+    " <leader>sl       Restaurar última sesión",
+    " <leader>sd       Detener grabación de sesión",
+    " <leader>tt       Abrir/Cerrar Terminal flotante",
+    " <C-`>            Abrir/Cerrar Terminal flotante",
+    " ",
+    " [SALIR]",
+    " q / <Esc>        Cerrar esta ayuda",
+  }
+
+  popup:mount()
+  vim.api.nvim_buf_set_lines(popup.bufnr, 0, 1, false, content)
+
+  -- Configuración del buffer
+  vim.api.nvim_set_option_value("modifiable", false, { buf = popup.bufnr })
+  vim.api.nvim_set_option_value("readonly", true, { buf = popup.bufnr })
+  vim.api.nvim_set_option_value("filetype", "nvim-help", { buf = popup.bufnr })
+
+  -- Resaltado de sintaxis (Usando comillas normales para evitar errores)
+  vim.api.nvim_create_autocmd("FileType", {
+    buffer = popup.bufnr,
+    callback = function()
+      -- Regex: Corchetes al inicio (ej: [GIT])
+      vim.fn.matchadd("Title", "^\\s*\\[.*\\]")
+      -- Regex: Teclas especiales entre <> (ej: <leader>)
+      vim.fn.matchadd("Special", "<[^>]\\+>")
+      -- Regex: Palabras clave al inicio (ej: gd)
+      vim.fn.matchadd("String", "^\\s*\\w\\+")
+      -- Regex: Comentarios
+      vim.fn.matchadd("Comment", "Same as.*")
+    end,
+  })
+
+  -- Cerrar
+  popup:map("n", "q", function() popup:unmount() end, { noremap = true })
+  popup:map("n", "<Esc>", function() popup:unmount() end, { noremap = true })
+  popup:on(event.BufLeave, function() popup:unmount() end)
+end, { desc = "Ayuda Global / Cheatsheet" })
